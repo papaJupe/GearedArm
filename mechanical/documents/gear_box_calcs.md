@@ -2,7 +2,7 @@
 
 We started with some basic assumptions about the length, weight, and required to move our arm. We assume that the arm will be 30.0" long, a weight of 10.0 lbs will be located at the end of the arm, and we'll want to rotate the arm at 15 RPM (which is equivalent to 1/4 rotation per second). We also assume that we'll need to move the arm from an initial position of 40 degrees off of horizontal, through 100 degrees of rotation, and ending at 40 degrees off the opposite horizon on the opposite side. For calculations, we introduced the following variables:
 
-* $ l = 30 in $ (arm length)
+* $` l = 30 in `$ (arm length)
 * $ w = 10 lbs $ (weight)
 * $ \alpha = 40 degrees $ (minimum angle from horizontal)
 * $ \Omega_a =  15 RPM  = 0.25 RPS$
