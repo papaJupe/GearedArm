@@ -48,13 +48,6 @@ public class Robot extends TimedRobot {
 
   final ArmSubsys myArmProto = new ArmSubsys();
 
-  // button to reset encoder, set various arm angle
-  Trigger leftBump;
-  Trigger buttonA;
-  Trigger buttonB;
-  Trigger buttonX;
-  Trigger buttonY;
-
   int angleGoal = 0;
 
   @Override
@@ -67,12 +60,12 @@ public class Robot extends TimedRobot {
     // define button triggers, used in rP and tP
 
     // to reset encoder to show distance of 0 at current position
-    leftBump = new Trigger(myStick::getLeftBumperPressed);
+    Trigger leftBump = new Trigger(myStick::getLeftBumperPressed);
 
-    buttonA = new Trigger(myStick::getAButton);
-    buttonB = new Trigger(myStick::getBButton);
-    buttonX = new Trigger(myStick::getXButton);
-    buttonY = new Trigger(myStick::getYButton);
+    Trigger buttonA = new Trigger(myStick::getAButton);
+    Trigger buttonB = new Trigger(myStick::getBButton);
+    Trigger buttonX = new Trigger(myStick::getXButton);
+    Trigger buttonY = new Trigger(myStick::getYButton);
 
     Trigger armRevrs = new POVButton(myStick, 270); // left POV
     Trigger armForwd = new POVButton(myStick, 90); // rt POV
@@ -93,13 +86,13 @@ public class Robot extends TimedRobot {
             // Close the loop by reading present angle
             myArmProto::getAngle,
             // Setpoint is 0 for full reverse, allow for overshoot
-            setpointA, // how to .setTol for this inline PIDcontrol?()
+            setpointA, // how to .setTol for this inline PIDcontrol?
             // Pipe output to arm subsys method
             output -> myArmProto.armMotorSpark.set(output * 0.05),
             // Require the subsys instance
             myArmProto))
         .onFalse(new InstantCommand(() -> myArmProto.armMotorSpark.set(0.0)));
-    // onFalse cmd needed to stop zombie PIDcmd from eating all RIO memory!
+    // onFalse cmd needed to stop zombie PIDcmd
 
     buttonB.onTrue(new PrintCommand("buttonB press"))
         .whileTrue(new PIDCommand(new PIDController(kP, kI, kD),
@@ -147,7 +140,7 @@ public class Robot extends TimedRobot {
     // SmartDashboard.putNumber("Max Output", kMaxOutput);
     // SmartDashboard.putNumber("Min Output", kMinOutput);
 
-    // init SmtDsh field for desired angle setpoint and present angle
+    // init SmtDsh field for desired angle goal and present angle
     SmartDashboard.putNumber("angleGoal", 0);
     // field shows present encoder value
     SmartDashboard.putNumber("armAngle deg.", 0);
@@ -215,10 +208,8 @@ public class Robot extends TimedRobot {
   } // end telePeri
 
   // function is called once each time robot enters Disabled mode.
-  // tried this to kill zombie PIDcmd in tP when disabling, but didn't work
   @Override
   public void disabledInit() {
-    // CommandScheduler.getInstance().cancelAll();
   }
 
   @Override
