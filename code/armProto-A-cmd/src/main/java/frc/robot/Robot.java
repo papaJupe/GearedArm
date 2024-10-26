@@ -71,28 +71,28 @@ public class Robot extends TimedRobot {
     Trigger armForwd = new POVButton(myStick, 90); // rt POV
 
     // trigger work here (rI) to move arm, but only when Enabled
-    armForwd.onTrue(new InstantCommand(() -> myArmProto.armMotorSpark.set(0.5)));
+    armForwd.onTrue(new InstantCommand(() -> myArmProto.armMotorSpark.set(0.3)));
     armForwd.onFalse(new InstantCommand(() -> myArmProto.armMotorSpark.set(0.0)));
     // both started movement onTrue, didn't stop until .onFalse added,
-    armRevrs.onTrue(new InstantCommand(() -> myArmProto.armMotorSpark.set(-0.4)));
+    armRevrs.onTrue(new InstantCommand(() -> myArmProto.armMotorSpark.set(-0.3)));
     armRevrs.onFalse(new InstantCommand(() -> myArmProto.armMotorSpark.set(0.0)));
 
     // method of encoder superclass; works here only when Enabled;
     leftBump.onTrue(new InstantCommand(() -> myArmProto.absolArmEncod.reset()));
 
-    // press + hold returns arm to home (full reverse) angle, slowly
-    buttonA.onTrue(new PrintCommand("buttonA press"))
-        .whileTrue(new PIDCommand(new PIDController(kP, kI, kD),
+    // press x 1 returns arm to home (full reverse) angle, slowly
+    buttonA.onTrue(
+        new PIDCommand(new PIDController(kP, kI, kD),
             // Close the loop by reading present angle
             myArmProto::getAngle,
-            // Setpoint is 0 for full reverse, allow for overshoot
-            setpointA, // how to .setTol for this inline PIDcontrol?
+            setpointA,
             // Pipe output to arm subsys method
-            output -> myArmProto.armMotorSpark.set(output * 0.05),
+            output -> myArmProto.armMotorSpark.set(output * 0.1),
             // Require the subsys instance
             myArmProto))
-        .onFalse(new InstantCommand(() -> myArmProto.armMotorSpark.set(0.0)));
-    // onFalse cmd needed to stop zombie PIDcmd
+        .onTrue(new PrintCommand("buttonA press"));
+    // .onFalse(new InstantCommand(() -> myArmProto.armMotorSpark.set(0.0)));
+    // onFalse not needed for one-off action, so PIDcmd stays active, holding pos
 
     buttonB.onTrue(new PrintCommand("buttonB press"))
         .whileTrue(new PIDCommand(new PIDController(kP, kI, kD),
