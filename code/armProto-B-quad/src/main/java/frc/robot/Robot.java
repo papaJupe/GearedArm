@@ -1,10 +1,13 @@
-// armProto-B-cmd               Robot.j  cmd/subsys basic format
+// armProto-B-quad               Robot.j  cmd/subsys basic format
+// test of arm code on plain motor with relative A-B encoder
 
 /* example for testing arm prototype, learning coding PID 
 * position control of a single motor-controlled arm with various motor 
 * controller hardware and feedback encoders
 v. B --make PIDcmd subclass for button and Auto to call w/ param to set angle
-and speed, make Sequ. group. Also added option for ProfilePIDcommand
+and speed Also added option for ProfilePIDcommand
+-B quad add cmd Sequence group for 3 different angles, called by Auto
+
 */
 
 /* after deploying, enable teleOp, use L or R POV button to move arm to full
@@ -13,7 +16,7 @@ and speed, make Sequ. group. Also added option for ProfilePIDcommand
 */
 
 /* learning exercise for students: A. figure out what these lambda phrases 
-* are doing and rewrite in clearer normal code (Trigger(method::reference), 
+* are doing and rewrite in clearer normal code: (Trigger(method::reference), 
 * InstantCommand()) -- using classes and methods not needing lambda operators.
 * B. instead of space consuming new PIDCommand for each trigger action, make 
 * one Command class that receives an angle param to turn to.
@@ -28,10 +31,13 @@ import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.PIDCommand;
 import edu.wpi.first.wpilibj2.command.PrintCommand;
+import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
+import edu.wpi.first.wpilibj2.command.WaitCommand;
 //import edu.wpi.first.wpilibj2.command.button.JoystickButton;
 import edu.wpi.first.wpilibj2.command.button.POVButton;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
@@ -51,7 +57,7 @@ public class Robot extends TimedRobot {
   public final XboxController myStick = new XboxController(0);
 
   public final ArmSubsys myArmProto = new ArmSubsys();
-
+  private Command quadAutoCommand;
   int angleGoal = 0;
   int rotaGoal = 0;
 
@@ -90,16 +96,16 @@ public class Robot extends TimedRobot {
 
     // press x 1 returns arm to home (full reverse) angle, slowly
     buttonA.onTrue(new PrintCommand("buttonA press"));
-            // .onTrue(
-        // new PIDCommand(new PIDController(kP, kI, kD),
-        // // Close the loop by reading present angle
-        // myArmProto::getAngle,
-        // // target angle
-        // setpointA,
-        // // Pipe output to arm subsys method
-        // output -> myArmProto.armMotorSpark.set(output * 0.1),
-        // // Require the subsys instance
-        // myArmProto))
+    // .onTrue(
+    // new PIDCommand(new PIDController(kP, kI, kD),
+    // // Close the loop by reading present angle
+    // myArmProto::getAngle,
+    // // target angle
+    // setpointA,
+    // // Pipe output to arm subsys method
+    // output -> myArmProto.armMotorSpark.set(output * 0.1),
+    // // Require the subsys instance
+    // myArmProto))
     // .onFalse(new InstantCommand(() -> myArmProto.armMotorSpark.set(0.0)));
     // onFalse not needed for one-off action, so PIDcmd stays active, holding pos
 
@@ -108,12 +114,12 @@ public class Robot extends TimedRobot {
         .whileTrue(new GoToAngle(myArmProto, setpointB / 10, 0.15)) // 60deg
         .onFalse(new InstantCommand(() -> myArmProto.armMotorSpark.set(0.0)));
 
-    // call GoToAngleProf (90 deg) on one press on buttonX  vs. press+hold .onWhile
+    // call GoToAngleProf (90 deg) on one press on buttonX vs. press+hold .onWhile
     buttonX.onTrue(new PrintCommand("buttonXprof press"))
         .onTrue(new GoToAngleProf(myArmProto, setpointX / 10, 0.15)); // 90deg
-        //.onFalse(new InstantCommand(() -> myArmProto.armMotorSpark.set(0.0)));
+    // .onFalse(new InstantCommand(() -> myArmProto.armMotorSpark.set(0.0)));
 
-       // turn to 120deg on one press
+    // turn to 120deg on one press
     buttonY.onTrue(new PrintCommand("buttonYinlineCmd press"))
         .onTrue(new PIDCommand(new PIDController(kP, kI, kD),
             // Close the loop by reading present angle
@@ -123,8 +129,8 @@ public class Robot extends TimedRobot {
             // Pipe output to arm subsys motor's method
             output -> myArmProto.armMotorSpark.set(output * 0.15),
             // Require the subsys
-            myArmProto));
-       // .onFalse(new InstantCommand(() -> myArmProto.armMotorSpark.set(0.0)));
+            myArmProto))
+        .onFalse(new InstantCommand(() -> myArmProto.armMotorSpark.set(0.0)));
 
     // display PID coefficients on SmartDashboard
     SmartDashboard.putNumber("P Gain", kP);
@@ -178,6 +184,16 @@ public class Robot extends TimedRobot {
   // autoInit runs the autonomous command set here or usually RC
   @Override
   public void autonomousInit() {
+    quadAutoCommand = new SequentialCommandGroup(
+        new GoToAngle(myArmProto, setpointB / 10, 0.15)
+            .andThen(new WaitCommand(2.0))
+            .andThen(new GoToAngle(myArmProto, setpointX / 10, 0.15))
+            .andThen(new WaitCommand(2.0))
+            .andThen(new GoToAngle(myArmProto, setpointY / 10, 0.15))
+            .andThen(new PrintCommand("auto GTAdone")));
+
+    if (quadAutoCommand != null)
+      quadAutoCommand.schedule();
 
   } // end autoInit
 
@@ -190,9 +206,10 @@ public class Robot extends TimedRobot {
   public void teleopInit() {
     // This confirms that the autonomous code has stopped,. If you want
     // auto cmd to continue until interrupted, remove this line.
-    // if (m_autonomousCommand != null) {
-    // m_autonomousCommand.cancel();
-    // }
+    if (quadAutoCommand != null) {
+      quadAutoCommand.cancel();
+      System.out.println("teleInit run");
+    }
     // m_robotContainer.m_drivetrain.resetEncoders();
     // m_robotContainer.m_drivetrain.resetGyro();
   } // end teleInit

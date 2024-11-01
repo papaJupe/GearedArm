@@ -67,7 +67,7 @@ public class ArmSubsys extends SubsystemBase {
   // }
   // to show rotation count
   public double getRot() {
-    return armEncoder.get() / 1024.00;
+    return (armEncoder.get() / 1024.00);
   }
 
   @Override

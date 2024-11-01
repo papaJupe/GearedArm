@@ -25,15 +25,18 @@ public class GoToAngle extends PIDCommand {
         // Require the subsys instance
         arm);
 
-    addRequirements(arm);
-    getController().setTolerance(0.5);//not using this ??
     // Use addRequirements() here to declare subsystem dependencies.
-    // Configure additional PID options by calling `getController` here.
+     addRequirements(arm);
+
+// Configure additional PID options by calling `getController` here.
+    getController().setTolerance(0.5);  //not using this ??
+   
   } // end constructor
 
-  // Returns true when the command should end.
-  @Override
+  // Returns true when the command should end, i.e. at setpoint, unless it's
+  // supposed to hold position, or in Sequence group (must end to advance seq.)
+  // @Override
   public boolean isFinished() {
-    return false;
-  }
+    return getController().atSetpoint();
+ }
 }
