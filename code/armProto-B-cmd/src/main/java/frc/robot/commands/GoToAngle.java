@@ -5,6 +5,7 @@
 package frc.robot.commands;
 
 import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.PIDCommand;
 
 import frc.robot.subsystems.ArmSubsys;
@@ -12,10 +13,10 @@ import static frc.robot.subsystems.ArmSubsys.*;
 //import frc.robot.Robot.*;
 //import frc.robot.Robot;
 
-// NOTE:  Consider using this command inline, rather than writing a subclass.  For more
-// information, see:
-// https://docs.wpilib.org/en/stable/docs/software/commandbased/convenience-features.html
+
 public class GoToAngle extends PIDCommand {
+  double angleGo; // to display target angle angle v.i.
+
   /* Construct new GoToAngle cmd */
   public GoToAngle(ArmSubsys arm, double angle, double speed) {
     super(
@@ -28,16 +29,24 @@ public class GoToAngle extends PIDCommand {
         // Pipe output to arm subsys method
         output -> arm.armMotorSpark.set(output * speed),
         // Require the subsys instance
-        arm);
+        arm); //  end super
 
-    addRequirements(arm);
+    // addRequirements(arm); not needed since super block added already
     // Use addRequirements() here to declare subsystem dependencies.
     // Configure additional PID options by calling `getController` here.
+    angleGo = angle;
+    getController().setTolerance(0.1);
+
   } // end constructor
+
+
+  // target angle will display on Smt Dash, must comment out roboPeriodic call
+  public void initialize() {
+    SmartDashboard.putNumber("angleGoal", angleGo);}
 
   // Returns true when the command should end.
   @Override
   public boolean isFinished() {
-    return false;
+    return getController().atSetpoint();
   }
-}
+} // end class

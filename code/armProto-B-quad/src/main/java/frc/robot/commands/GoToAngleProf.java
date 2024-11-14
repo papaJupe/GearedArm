@@ -15,9 +15,9 @@ public class GoToAngleProf extends ProfiledPIDCommand {
   /** Construct new GoToAngleProf */
   public GoToAngleProf(ArmSubsys arm, double angle, double speed) {
     super(
-         new ProfiledPIDController(
+        new ProfiledPIDController(
             // PID param
-            kP,kI,kD,
+            kP, kI, kD,
             // motion profile constraints
             new TrapezoidProfile.Constraints(2.0, 1.0)),
         // This should return the measurement
@@ -25,11 +25,10 @@ public class GoToAngleProf extends ProfiledPIDCommand {
         // This should return the goal (can also be a constant)
         angle,
         // Use the output (and setpoint, if desired) here
-        (output, setpoint) -> { arm.armMotorSpark.set(output * speed); });
-
-    // addRequirements() here to declare subsystem dependency
-    addRequirements(arm);
-        // Configure additional PID options by calling `getController` 
+        (output, setpoint) -> arm.armMotorSpark.set(output * speed),
+        // addRequirements()
+        arm); //end super
+    // Configure additional PID options by calling `getController`
     getController().setTolerance(1.5); // not being used?
   } // end constructor
 

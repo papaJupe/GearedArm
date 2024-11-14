@@ -142,7 +142,7 @@ public class Robot extends TimedRobot {
     // SmartDashboard.putNumber("Min Output", kMinOutput);
 
     // init SmtDsh field for desired angle goal and present angle
-    SmartDashboard.putNumber("rotaGoal", 0);
+    SmartDashboard.putNumber("rotaGoal", 0.00);
     // field shows present encoder value
     SmartDashboard.putNumber("rotaCnt", 0.00);
     // to put text on SmtDsh
@@ -173,10 +173,9 @@ public class Robot extends TimedRobot {
 
     CommandScheduler.getInstance().run();
 
-    SmartDashboard.putNumber("rotaGoal", angleGoal);
+    // SmartDashboard.putNumber("rotaGoal", angleGoal);
     // display current arm angle
-    SmartDashboard.putNumber("rotaCnt",
-        myArmProto.getRot());
+    SmartDashboard.putNumber("rotaCnt", myArmProto.getRot());
     // class method will return Math.round(absolArmEncod.getDistance()
     // myArmProto.getAngle();
   } // end robotPeriodic

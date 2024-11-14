@@ -28,10 +28,13 @@ import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.PIDCommand;
 import edu.wpi.first.wpilibj2.command.PrintCommand;
+import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
+import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.POVButton;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.commands.GoToAngle;
@@ -49,6 +52,8 @@ public class Robot extends TimedRobot {
   public final XboxController myStick = new XboxController(0);
 
   public final ArmSubsys myArmProto = new ArmSubsys();
+
+  public Command AutoCommand;
 
   int angleGoal = 0;
 
@@ -98,12 +103,13 @@ public class Robot extends TimedRobot {
     // onFalse not needed for one-off action, so PIDcmd stays active, holding pos
 
     // reconfigure to call GoToAngle PIDcmd while held
-    buttonB.onTrue(new PrintCommand("buttonB press"))
+    buttonB
         .whileTrue(new GoToAngle(myArmProto, setpointB, 0.15)) // 60deg
-        .onFalse(new InstantCommand(() -> myArmProto.armMotorSpark.set(0.0)));
+        .onFalse(new InstantCommand(() -> myArmProto.armMotorSpark.set(0.0)))
+        .onTrue(new PrintCommand("buttonB press"));
 
     // go to 90° on buttonX press+hold
-    buttonX.onTrue(new PrintCommand("buttonX press"))
+    buttonX
         .whileTrue(new PIDCommand(new PIDController(kP, kI, kD),
             // Close the loop on present angle
             myArmProto::getAngle,
@@ -113,9 +119,10 @@ public class Robot extends TimedRobot {
             output -> myArmProto.armMotorSpark.set(output * 0.15),
             // Require the subsys
             myArmProto))
-        .onFalse(new InstantCommand(() -> myArmProto.armMotorSpark.set(0.0)));
+        .onFalse(new InstantCommand(() -> myArmProto.armMotorSpark.set(0.0)))
+        .onTrue(new PrintCommand("buttonX press"));
 
-    buttonY.onTrue(new PrintCommand("buttonY press"))
+    buttonY
         .whileTrue(new PIDCommand(new PIDController(kP, kI, kD),
             // Close the loop by reading present angle
             myArmProto::getAngle,
@@ -125,7 +132,8 @@ public class Robot extends TimedRobot {
             output -> myArmProto.armMotorSpark.set(output * 0.15),
             // Require the subsys
             myArmProto))
-        .onFalse(new InstantCommand(() -> myArmProto.armMotorSpark.set(0.0)));
+        .onFalse(new InstantCommand(() -> myArmProto.armMotorSpark.set(0.0)))
+        .onTrue(new PrintCommand("buttonY press"));
 
     // display PID coefficients on SmartDashboard
     SmartDashboard.putNumber("P Gain", kP);
@@ -168,10 +176,10 @@ public class Robot extends TimedRobot {
 
     CommandScheduler.getInstance().run();
 
-    SmartDashboard.putNumber("angleGoal", angleGoal);
+    // comment out to show auto targets
+    // SmartDashboard.putNumber("angleGoal", angleGoal);
     // display current arm angle
-    SmartDashboard.putNumber("armAngle deg.",
-        myArmProto.getAngle());
+    SmartDashboard.putNumber("armAngle deg.", myArmProto.getAngle());
     // class method will return Math.round(absolArmEncod.getDistance()
 
   } // end robotPeriodic
@@ -179,7 +187,16 @@ public class Robot extends TimedRobot {
   // autoInit runs the autonomous command set here or usually RC
   @Override
   public void autonomousInit() {
+    AutoCommand = new SequentialCommandGroup(
+        new GoToAngle(myArmProto, setpointB, 0.15)
+            .andThen(new WaitCommand(2.0))
+            .andThen(new GoToAngle(myArmProto, setpointX, 0.15))
+            .andThen(new WaitCommand(2.0))
+            .andThen(new GoToAngle(myArmProto, setpointY, 0.15))
+            .andThen(new PrintCommand("auto GTAdone")));
 
+    if (AutoCommand != null)
+      AutoCommand.schedule();
   } // end autoInit
 
   /** This function is called periodically during autonomous if needed */
