@@ -7,11 +7,14 @@ package frc.robot.commands;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.trajectory.TrapezoidProfile;
 import edu.wpi.first.wpilibj2.command.ProfiledPIDCommand;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 import frc.robot.subsystems.ArmSubsys;
 import static frc.robot.subsystems.ArmSubsys.*;
 
 public class GoToAngleProf extends ProfiledPIDCommand {
+  double angleGo;
+
   /** Construct new GoToAngleProf */
   public GoToAngleProf(ArmSubsys arm, double angle, double speed) {
     super(
@@ -27,10 +30,15 @@ public class GoToAngleProf extends ProfiledPIDCommand {
         // Use the output (and setpoint, if desired) here
         (output, setpoint) -> arm.armMotorSpark.set(output * speed),
         // addRequirements()
-        arm); //end super
+        arm); // end super
     // Configure additional PID options by calling `getController`
-    getController().setTolerance(1.5); // not being used?
+    getController().setTolerance(0.2); // being used?
+    angleGo = angle;
   } // end constructor
+
+  public void initialize() {
+    SmartDashboard.putNumber("rotaGoal", angleGo);
+  }
 
   // Returns true when the command should end. Does not end now when at target.
   @Override

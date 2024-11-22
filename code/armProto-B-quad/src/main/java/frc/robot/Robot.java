@@ -1,11 +1,11 @@
 // armProto-B-quad               Robot.j  cmd/subsys basic format
-// test of arm code on plain motor with relative A-B encoder
+// test of 'arm' code on plain brush motor with relative A-B encoder
 
 /* example for testing arm prototype, learning coding PID 
 * position control of a single motor-controlled arm with various motor 
 * controller hardware and feedback encoders
-v. B --make PIDcmd subclass for button and Auto to call w/ param to set angle
-and speed Also added option for ProfilePIDcommand
+* v. B - make PIDcmd subclass for button and Auto to call w/ params for angle
+* and speed Also added option for ProfilePIDcommand
 -B quad add cmd Sequence group for 3 different angles, called by Auto
 
 */
@@ -109,7 +109,7 @@ public class Robot extends TimedRobot {
     // .onFalse(new InstantCommand(() -> myArmProto.armMotorSpark.set(0.0)));
     // onFalse not needed for one-off action, so PIDcmd stays active, holding pos
 
-    // call GoToAngle PIDcmd if held(whileTrue) vs. one Press (onTrue)
+    // call GoToAngle PIDcmd if held (whileTrue) vs. one Press (onTrue)
     buttonB.onTrue(new PrintCommand("buttonBpidCmd press"))
         .whileTrue(new GoToAngle(myArmProto, setpointB / 10, 0.15)) // 60deg
         .onFalse(new InstantCommand(() -> myArmProto.armMotorSpark.set(0.0)));

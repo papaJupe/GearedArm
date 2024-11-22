@@ -26,13 +26,14 @@ public class GoToAngle extends PIDCommand {
         // Pipe output to arm subsys method
         output -> arm.armMotorSpark.set(output * speed),
         // Require the subsys instance
-        arm);  // end super
+        arm); // end super
 
     // Use addRequirements() here to declare subsystem dependencies.
     // addRequirements(arm); ? if needed by cmd since controller got already
 
     // Configure additional PID options by calling `getController` here.
     getController().setTolerance(0.2);
+
     angleGo = angle;
   } // end constructor
 
