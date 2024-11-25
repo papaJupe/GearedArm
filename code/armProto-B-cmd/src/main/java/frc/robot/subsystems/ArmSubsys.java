@@ -5,9 +5,11 @@
 package frc.robot.subsystems;
 
 import edu.wpi.first.wpilibj.DutyCycleEncoder;
+import edu.wpi.first.wpilibj.Encoder;
 import edu.wpi.first.wpilibj.motorcontrol.Spark;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+
 import edu.wpi.first.math.filter.LinearFilter;
 import edu.wpi.first.wpilibj.Timer;
 
@@ -16,21 +18,24 @@ public class ArmSubsys extends SubsystemBase {
   // single brushed motor, PWM control (port) of RoboRIO
   public final Spark armMotorSpark = new Spark(0);
 
-  // if reading Quad encoder on arm, hardwire to RIO DIO port 0,1
-  // public final Encoder armEncoder = new Encoder(0,1);
+  // if reading Quad encoder on arm, hardwire to RIO DIO port 2,3
+  public final Encoder armEncoder = new Encoder(2, 3, true);
 
   // for REV thru bore 11-1271 using abs. mode, full 360° rot = 1024 count
   // remote absol. encoder on arm axis, wired to this RIO port
   public final DutyCycleEncoder absolArmEncod = new DutyCycleEncoder(0);
-  private final LinearFilter rateFilter = LinearFilter.movingAverage(5);
+  // smoothe angular rate
+  private final LinearFilter rateFilter = LinearFilter.movingAverage(10);
   private final Timer timer = new Timer();
-  private double lastPosition = 0;
-  private double lastTime = 0;
+  // private double lastPosition = 0; // use for absolEncod rate
+  // private double lastTime = 0;
+  private double indxStart = 0; // time when index() method begins
+  private double rateNow = 0; // periodic update angular change/sec.
+  private boolean indxMode = false; // indexing active or not
 
   // angle control setpoints for button triggers
-  // I would prefer to have each button set a param, sending it to
-  // a new PIDcommand using that angle param. Expect to need named PIDcmd class
-  public static double setpointA = -3.0; // needed this (-) offset to reach actual 0
+  // v. B has new PIDcommand class to set angle and speed param
+  public static double setpointA = -2.0; // needed this (-) offset to reach actual 0
   public static double setpointB = 60;
   public static double setpointX = 90;
   public static double setpointY = 120; // end limit ~180°
@@ -49,7 +54,7 @@ public class ArmSubsys extends SubsystemBase {
     // invert / or not, so that positive V (to red wire) results in
     // arm moving "forward'. Normal polarity goes fwd on prototype but
     // absolute encoder reads 'fwd' as negative, so for RIO control I need
-    // to invert. I.e. fwd for Spark limit is reverse in code for
+    // to invert. I.e. fwd for Spark limit sw. is reverse in code for
     // RIO & gamepad when this code is in control
     armMotorSpark.setInverted(true);
 
@@ -60,7 +65,7 @@ public class ArmSubsys extends SubsystemBase {
     // absolArmEncod.setDistancePerRotation(2 * Math.PI);
 
     timer.start();
-    lastTime = timer.get();
+    // lastTime = timer.get();
 
   } // end constructor
 
@@ -68,44 +73,51 @@ public class ArmSubsys extends SubsystemBase {
     return Math.round(absolArmEncod.getDistance());
   }
 
-  public double getRate() {
-    double currentPosition = absolArmEncod.getDistance();
-    double currentTime = timer.get();
-    double rate = (currentPosition - lastPosition) / (currentTime - lastTime);
-    lastPosition = currentPosition;
-    lastTime = currentTime;
+  public double getRate() { // edited to use more stable quad encoder #
+    double rate = armEncoder.getRate();
     return rateFilter.calculate(rate);
   }
 
-  // indexing method moves arm to full rev. 0 angle
+  // public double getRate() { // edited method appears to work but jittery
+  // double currentPosition = absolArmEncod.getDistance(); // more precise number
+  // double currentTime = timer.get();
+  // double rate = (currentPosition - lastPosition) / (currentTime - lastTime);
+  // lastPosition = currentPosition;
+  // lastTime = currentTime;
+  // return rateFilter.calculate(rate);
+  // }
+
+  // indexing method moves arm to full rev., 0 angle on button Trigger
   public void index() {
-    // Start the timer if it's not running
-    if (timer.get() == 0) {
+    indxMode = true;
+    // proposed isRunning() method was good conceptually but ...
+    if (timer.get() == 0) { // isRunning() method !exist for Timer class
       timer.start();
     }
-
-    // Set motor to slow reverse speed
-    armMotorSpark.set(-0.05);
-
-    // Wait until arm stops moving
-    while (Math.abs(getRate()) > 0.5) {
-      // Continues running periodic functions
-      Timer.delay(0.02);
-    }
-
-    //  then Stop the motor
-    armMotorSpark.set(0);
-
-    // Reset the encoder
-    absolArmEncod.reset();
-
-    System.out.println("Indexing fin, Arm at 0 deg.");
-  }  // end indexing
+    indxStart = timer.get();
+    // Set motor ops moved to periodic()
+    System.out.println("end index() block");
+  }
 
   @Override
   public void periodic() {
-    // called once per scheduler run
-    double rateNow = getRate(); // updates lastPosition and lastTime
+    // called once per scheduler run; displays Rate, runs indexing OK
+    rateNow = getRate(); // updates lastPosition and lastTime (absolEncod rate)
+    double indxDelay = timer.get() - indxStart; // sec. since index() started
+    if (indxMode) {
+      this.armMotorSpark.set(-0.2);
+      // Timer.delay(0.1); // even this causes Cmd Sccheduler Loop Overrun
+      if (Math.abs(rateNow) <= 0.5 && indxDelay >= 2.0) {
+        this.armMotorSpark.set(0.0);
+        // Reset the encoder
+        absolArmEncod.reset();
+        indxMode = false;
+        System.out.println("index() moved arm, set to 0 deg.");
+      } else
+        this.armMotorSpark.set(-0.2); // run slow rev. until stopped by limit sw.
+    } // end if
     SmartDashboard.putNumber("angulaRate", rateNow);
-  }
+    SmartDashboard.putNumber("indexDelay", indxDelay);
+  } // end periodic
+
 } // end class

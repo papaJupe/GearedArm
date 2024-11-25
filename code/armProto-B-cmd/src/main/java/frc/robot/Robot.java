@@ -3,13 +3,14 @@
 /* example for testing arm prototype, learning coding PID 
 * position control of a single motor-controlled arm with various motor 
 * controller hardware and feedback encoders
-v. B --make PIDcmd subclass for button and Auto to call w/ param to set angle
-and speed, make Sequ. group; add indexing method to auto-zero arm on startup
+v. B add PIDcmd subclass for button and Auto to call w/ param for angle
+and speed, use in auto Sequ.; add indexing method to auto-zero arm w/ button
 */
 
 /* after deploying, enable teleOp, use L or R POV button to move arm to full
  reverse position, click L bumper button to zero encoder there, then manually
- control angle with POV's, or go to preset angles by holding buttons A,B,X,Y
+ control angle with POV's, or go to preset angles by holding buttons A,B,X,Y.
+ Index arm to full rev. position 0 from teleOp enable + R bump button
 */
 
 /* learning exercise for students: A. figure out what these lambda phrases 
@@ -26,6 +27,7 @@ and speed, make Sequ. group; add indexing method to auto-zero arm on startup
 package frc.robot;
 
 import edu.wpi.first.math.controller.PIDController;
+
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -38,6 +40,7 @@ import edu.wpi.first.wpilibj2.command.SequentialCommandGroup;
 import edu.wpi.first.wpilibj2.command.WaitCommand;
 import edu.wpi.first.wpilibj2.command.button.POVButton;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+
 import frc.robot.commands.GoToAngle;
 import frc.robot.subsystems.ArmSubsys;
 import static frc.robot.subsystems.ArmSubsys.*;
@@ -56,7 +59,7 @@ public class Robot extends TimedRobot {
 
   public Command AutoCommand;
 
-  int angleGoal = 0;
+  public static int angleGoal = 0;
 
   @Override
   public void robotInit() {
@@ -65,13 +68,16 @@ public class Robot extends TimedRobot {
     // -- these things done in RobotContainer() in more complex program
 
     // move arm to full rev., assumes limit switch stops @rm angle = 0
-    myArmProto.index();
+    // myArmProto.index(); <--- rI calls method but does nothing since
+    // periodics not running yet
 
     // configure button binding -- here, rI vs. rC for simplicity
     // define button triggers, used in rP and tP
 
     // to reset encoder to show angle = 0 at current position
     Trigger leftBump = new Trigger(myStick::getLeftBumperPressed);
+    // to index, i.e. move arm to full rev., 0 angle, w/ this button press
+    Trigger rightBump = new Trigger(myStick::getRightBumperPressed);
 
     // button presses move arm to specific angle
     Trigger buttonA = new Trigger(myStick::getAButton);
@@ -91,6 +97,8 @@ public class Robot extends TimedRobot {
 
     // method of encoder superclass; works only when Enabled;
     leftBump.onTrue(new InstantCommand(() -> myArmProto.absolArmEncod.reset()));
+    // move arm to full rev. position, reset absol encoder to 0
+    rightBump.onTrue(new InstantCommand(() -> myArmProto.index()));
 
     // press x 1 returns arm to home (full reverse) angle, slowly
     buttonA.onTrue(
@@ -107,13 +115,13 @@ public class Robot extends TimedRobot {
     // .onFalse(new InstantCommand(() -> myArmProto.armMotorSpark.set(0.0)));
     // onFalse not needed for one-off action, so PIDcmd stays active, holding pos
 
-    // reconfigure to call GoToAngle PIDcmd while held
+    // press & hold calls GoToAngle PIDcmd ; ? if .onFalse (cmd) needed
     buttonB
         .whileTrue(new GoToAngle(myArmProto, setpointB, 0.15)) // 60deg
         .onFalse(new InstantCommand(() -> myArmProto.armMotorSpark.set(0.0)))
         .onTrue(new PrintCommand("buttonB press"));
 
-    // go to 90° on buttonX press+hold
+    // go to 90° on buttonX press + hold
     buttonX
         .whileTrue(new PIDCommand(new PIDController(kP, kI, kD),
             // Close the loop on present angle
@@ -189,7 +197,7 @@ public class Robot extends TimedRobot {
 
   } // end robotPeriodic
 
-  // autoInit runs the autonomous command set here or usually RC
+  // autoInit runs the autonomous command set here, or usually in RC
   @Override
   public void autonomousInit() {
     AutoCommand = new SequentialCommandGroup(
@@ -220,11 +228,16 @@ public class Robot extends TimedRobot {
     // }
     // m_robotContainer.m_drivetrain.resetEncoders();
     // m_robotContainer.m_drivetrain.resetGyro();
+
+    // indexing method move arm to full rev. 0 angle on tele Enabl ?
+    // myArmProto.index();
+
   } // end teleInit
 
   /* This function is called periodically when bot Enabled */
   @Override
   public void teleopPeriodic() {
+
   } // end telePeri
 
   // function is called once each time robot enters Disabled mode.
