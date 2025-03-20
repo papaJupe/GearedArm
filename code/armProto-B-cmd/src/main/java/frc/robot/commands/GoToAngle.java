@@ -10,7 +10,7 @@ import edu.wpi.first.wpilibj2.command.PIDCommand;
 import frc.robot.Robot;
 import frc.robot.subsystems.ArmSubsys;
 import static frc.robot.subsystems.ArmSubsys.*;
-,
+
 public class GoToAngle extends PIDCommand {
   double angleGo; // to display target angle v.i.
 
